@@ -57,7 +57,7 @@
                     await initAuth();
                 }
             } catch (err) {
-                console.error("Firebase 初始化失敗，切換至本機模式。", err);
+                console.error("Firebase 初始化失敗，切換至本機暫存模式。", err);
             }
         };
 
@@ -70,6 +70,8 @@
                 mode: mode,
                 timestamp: Date.now()
             };
+            
+            // 立即存入記憶體紀錄
             window.gameState.scores.push(scoreData);
             updateHistoryUI();
 
@@ -84,6 +86,7 @@
             if (!window.gameState.user || !db) return;
             const q = collection(db, 'artifacts', appId, 'users', window.gameState.user.uid, 'scores');
             onSnapshot(q, (snapshot) => {
+                // 獲取雲端紀錄並與本機紀錄合併（簡單覆蓋以維持同步）
                 window.gameState.scores = snapshot.docs.map(doc => doc.data());
                 updateHistoryUI();
             });
@@ -122,10 +125,12 @@
         window.openQuitModal = () => document.getElementById('quit-modal').classList.remove('hidden');
         window.closeQuitModal = () => document.getElementById('quit-modal').classList.add('hidden');
         
-        window.confirmQuit = () => {
+        // 返回主選單而不重新整理網頁
+        window.resetToMenu = () => {
             window.gameState.isPlaying = false;
             clearInterval(window.gameState.timerInterval);
             document.getElementById('quit-modal').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
             document.getElementById('start-screen').classList.remove('hidden');
             document.getElementById('quit-btn').classList.add('hidden');
             document.getElementById('nodes-container').innerHTML = '';
@@ -156,7 +161,6 @@
             const canvasWidth = container.clientWidth;
             const canvasHeight = container.clientHeight;
             
-            // 響應式調整節點大小
             let nodeSize = 64; 
             if (canvasWidth < 640) nodeSize = 48; 
             if (canvasWidth > 1200) nodeSize = 72; 
@@ -170,7 +174,7 @@
                 let pos = findValidRandomPosition(canvasWidth, canvasHeight, nodeSize, padding, minDistance);
                 
                 const node = document.createElement('div');
-                node.className = `game-node absolute rounded-full border-2 border-slate-300 bg-white flex items-center justify-center font-black shadow-md cursor-pointer z-10 hover:border-indigo-400 active:scale-95 transition-all select-none text-slate-700`;
+                node.className = `game-node absolute rounded-full border-2 border-slate-300 bg-white flex items-center justify-center font-bold shadow-md cursor-pointer z-10 hover:border-indigo-400 active:scale-95 transition-all select-none text-slate-700`;
                 node.style.width = `${nodeSize}px`;
                 node.style.height = `${nodeSize}px`;
                 node.style.fontSize = `${nodeSize * 0.45}px`;
@@ -380,7 +384,7 @@
                     <h3 class="text-lg font-black text-slate-800 mb-2">結束測驗？</h3>
                     <p class="text-[11px] text-slate-500 mb-8 font-bold leading-relaxed">目前的測驗紀錄將會消失。</p>
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="window.confirmQuit()" class="py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-black shadow-lg shadow-red-100 transition-all">
+                        <button onclick="window.resetToMenu()" class="py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-black shadow-lg shadow-red-100 transition-all">
                             確定退出
                         </button>
                         <button onclick="window.closeQuitModal()" class="py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-black transition-all">
@@ -417,7 +421,7 @@
                         <div id="history-list" class="space-y-1"></div>
                     </div>
 
-                    <button onclick="location.reload()" class="w-full py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black text-xs transition-all shadow-xl tracking-widest uppercase">
+                    <button onclick="window.resetToMenu()" class="w-full py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black text-xs transition-all shadow-xl tracking-widest uppercase">
                         RESTART
                     </button>
                 </div>
